@@ -8,33 +8,69 @@
  *
  * ***************************************/
 
-
 public class Reaction {
 
-  private String formula;
-  private Bag<Species> reactants;
-  private Bag<Species> products;
+  private String name;
+  private ST<Species, Double> st;
   private double fr;  /* forward rate */
   private double rr;  /* reverse rate */
 
-  /* default constructor */
-  public Reaction() {
-      formula = "noformula";
+  /* a helper class for outputing species and nu */
+  public static class Reactant {
+      public Species s;
+      public double nu;
+      public Reactant(Species s, double nu) {
+             this.s = s;
+             this.nu = nu;
+      }
   }
 
-  /* create a reaction with a formula */
-  public Reaction(String formula) {
-      this.formula = formula;
+  /* default constructor */
+  public Reaction() {
+      name = "noname";
+      st = new ST<Species, Double>();
+  }
+
+  /* create a reaction with a name */
+  public Reaction(String name) {
+      this.name = name;
+      st = new ST<Species, Double>();
   }
 
   /* add a reactant */
-  public void addReactant(Species r) {
-      reactants.add(r);
+  public void addReactant(Species s, double nu) {
+      if (st.contains(s)) throw new
+          IllegalArgumentException("duplicate species in one reaction");
+      st.put(s, nu);
   }
 
-  /* add a product */
-  public void addProduct(Species r) {
-      products.add(r);
+  /* add a reactant */
+  public void addReactant(Reactant rt) {
+      if (st.contains(rt.s)) throw new
+          IllegalArgumentException("duplicate species in one reaction");
+      st.put(rt.s, rt.nu);
+  }
+
+  /* remove a reactant */
+  public void removeReactant(Species s) {
+      st.delete(s);
+  }
+
+  /* remove a reactant */
+  public void removeReactant(Reactant rt) {
+      st.delete(rt.s);
+  }
+
+  /* update a reactant */
+  public void updateReactant(Species s, double nu) {
+      removeReactant(s);
+      addReactant(s, nu);
+  }
+
+  /* update a reactant */
+  public void updateReactant(Reactant rt) {
+      removeReactant(rt);
+      addReactant(rt.s, rt.nu);
   }
 
   /* return the total rate */
@@ -66,19 +102,70 @@ public class Reaction {
       this.rr = rr;
   }
 
-  /* return the reactants */
-  public Iterable<Species> reactants() {
-      return reactants;
-  } 
+  /* change the name */
+  public void setName(String n) {
+      name = n;
+  }
 
-  /* return the products */
-  public Iterable<Species> products() {
-      return products;
+  /* return the name */
+  public String name() {
+      return name;
+  }
+
+ /* return the st and coefficients */
+  public Reactant[] reactants() {
+      Reactant[] rs = new Reactant[st.size()];
+      int i = 0;
+      for (Species s : st.keys()) {
+          rs[i] = new Reactant(s, st.get(s));
+          i++;
+      }
+      return rs; 
   }
 
   /* return String representation */
   public String toString() {
-      return formula;
+      StringBuilder sb = new StringBuilder();
+      sb.append(name + ":");
+      StringBuilder left = new StringBuilder();
+      StringBuilder right = new StringBuilder();
+      Reactant[] rs = this.reactants();
+      for (Reactant r : rs) {
+          if (r.nu < 0) {
+               if (r.nu == -1) {
+               left.append(r.s.name() + "+");
+               } else {
+               left.append(Math.abs(r.nu) + r.s.name() + "+");
+               }
+          } 
+          if (r.nu > 0) {
+               if (r.nu == 1) {
+               right.append(r.s.name() + "+");
+               } else {
+               right.append(r.nu + r.s.name() + "+");
+               }
+          }
+      }
+      sb.append(left.substring(0, left.length()-1));
+      sb.append("=");
+      sb.append(right.substring(0, right.length()-1));
+      return sb.toString();
+  }
+
+  /* a test client */
+  public static void main(String[] args) {
+      Reaction r = new Reaction("H + O2 = HO2");
+      Species h = new Species("H");
+      Species o2 = new Species("O2");
+      Species ho2 = new Species("HO2");
+      r.addReactant(h, -2);
+      r.addReactant(o2, -1);
+      r.addReactant(ho2, 3);
+      r.setName("branching");
+      r.removeReactant(h);
+      r.addReactant(h, -1);
+      r.updateReactant(ho2, 1);
+      StdOut.println(r);
   }
 
 }

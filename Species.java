@@ -9,11 +9,9 @@
  * ***************************************/
 
 
-public class Species {
+public class Species implements Comparable<Species> {
 
   private String name;  /* String representation  */
-  private Bag<Reaction> reactIn;  /* reactions participate as reacants */
-  private Bag<Reaction> produceBy; /* reactions participate as products */
 
   /* Note that any reaction is treated as reversible, so there is
    * really no distinct between reactants and products. However, we
@@ -29,28 +27,26 @@ public class Species {
       this.name = name;
   }
  
-  public void addReactIn(Reaction r) {
-      reactIn.add(r);
-  }
-
-  public void addProduceBy(Reaction r) {
-      produceBy.add(r);
-  }
- 
   /* return the name */ 
   public String name() {
       return name;   
   }
    
-  /* return reactions that participate as reactants */
-  public Iterable<Reaction> reactIn() {
-      return reactIn;
+  /* compare function */
+  public int compareTo(Species that) {
+      return this.name().compareTo(that.name());
+  }
+ 
+  /* return a string representation of a species */
+  public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append(name);
+      return sb.toString();
   }
 
-  /* return reactions that participate as products */
-  public Iterable<Reaction> produceBy() {
-      return produceBy;
+  /* test client */
+  public static void main(String[] args) {
+      Species s = new Species("H2");
+      StdOut.println(s);
   }
-
-
 }

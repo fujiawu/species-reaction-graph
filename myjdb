@@ -1,0 +1,2 @@
+classpath=".:./packages/*"
+jdb -classpath $classpath $1

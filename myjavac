@@ -1,2 +1,2 @@
 classpath=".:./packages/*"
-javac -classpath $classpath $1
+javac -classpath $classpath $1 $2
