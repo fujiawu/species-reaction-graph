@@ -8,7 +8,7 @@
  *
  * ***************************************/
 
-public class Reaction {
+public class Reaction implements Comparable<Reaction> {
 
   private String name;
   private ST<Species, Double> st;
@@ -121,6 +121,11 @@ public class Reaction {
           i++;
       }
       return rs; 
+  }
+
+  /* compare function */
+  public int compareTo(Reaction that) {
+      return this.name().compareTo(that.name());
   }
 
   /* return String representation */
