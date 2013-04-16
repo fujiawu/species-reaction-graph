@@ -34,6 +34,11 @@ public class DSRgraph {
        rDict = new ST<String, Reaction>();
    }
 
+   private class Node {
+       private Species s;
+       private Reaction r;
+   }
+
    /* check existance of a species */
    public boolean contains(Species s) {
        return species.contains(s);
@@ -143,13 +148,93 @@ public class DSRgraph {
       if (type.equals("skeleton")) {
           StringBuilder sb = new StringBuilder();
           sb.append("digraph G {\n");
-          sb.append("size = \"80,80\"; \n");
+          sb.append("size = \"20,20\"; \n");
+          sb.append("rankdir = LR; \n");
+          sb.append("rank = fill \n");
+          sb.append("layout = fdp \n");
+          /* draw a graph using bfs sequence */
+          int N = sSize() + rSize();
+          Node[] nodes = new Node[N];
+          boolean[] marked = new boolean[N];
+          boolean[] dequeued = new boolean[N];
+          int[] distTo = new int[N];
+          for (int i = 0; i < N; i++) {
+              dequeued[i] = false;
+              distTo[i] = Integer.MAX_VALUE;
+          }
+          ST<String, Integer> stable = new ST<String, Integer>();
+          ST<String, Integer> rtable = new ST<String, Integer>();
+          int i = 0; int start = 0;
+          for (Species s : species()) { 
+              Node node = new Node();
+              node.s = s; node.r = null;
+              nodes[i] = node;
+              stable.put(s.name(), i);
+              if (s.name().equals("nc4h9oh")) start = i;
+              //if (s.name().equals("N1C4H9OH")) start = i;
+              i++;
+          }
+          for (Reaction r : reactions()) {
+              Node node = new Node();
+              node.s = null; node.r = r;
+              nodes[i] = node;
+              rtable.put(r.name(), i);
+              i++;
+          }
+          //StdOut.println("size:" + i + " vs " + N); 
+          Queue<Integer> q = new Queue<Integer>();
+          int distMax = 2;
+          marked[start] = true; distTo[start] = 0;
+          q.enqueue(start);
+          //for (int itest = 0; itest < N; itest++) StdOut.println(distTo[itest]);
+          while (!q.isEmpty()) {
+              int current = q.dequeue();
+              //StdOut.println(current);
+              Node node = nodes[current];
+              if (node.s != null) /* is a species */ {
+                 /* return the reactions involved */
+                 for ( Reaction r : species.get(node.s).keys()) {
+                     int ri = rtable.get(r.name());
+                     if (!marked[ri]) {
+                        marked[ri] = true;
+                        distTo[ri] = distTo[current] + 1;
+                        q.enqueue(ri);
+                     }
+                     if (!dequeued[ri] && distTo[current] < distMax && distTo[ri] < distMax) {
+                       sb.append("\"" + node.s.name() + "\" -> \"" + r.name() + "\" [arrowhead=none]; \n");
+                       sb.append("\"" + r.name() + "\" [shape=box]; \n" );
+                     } 
+ 
+                 }
+              } 
+              else { 
+                 /* return all the species in the reaction */
+                 for (Reaction.Reactant rt : node.r.reactants() ) {
+                      int si = stable.get(rt.s.name());
+                      if (!marked[si]) {
+                         marked[si] = true;
+                         distTo[si] = distTo[current] + 1;
+                         q.enqueue(si);
+                      }
+                      if (!dequeued[si] && distTo[current]< distMax && distTo[si] < distMax) {
+                       sb.append("\"" + node.r.name() + "\" -> \"" + rt.s.name() + "\" [arrowhead=none]; \n");
+                       sb.append("\"" + node.r.name() + "\" [shape=box]; \n" );
+                      }
+                } 
+              }  
+              dequeued[current] = true;
+            } 
+
+          /*
           for (Reaction r : reactions()) {
               for (Reaction.Reactant rt : r.reactants()) {
                 sb.append("\"" + r.name() + "\" [shape=box]; \n");
-                sb.append("\"" + r.name() + "\" -> \"" + rt.s.name() + "\" [arrowhead=none]; \n");
+                //sb.append("\"" + r.name() + "\" -> \"" + rt.s.name() + "\" [arrowhead=none]; \n");
+                sb.append("\"" + rt.s.name() + "\" -> \"" + r.name() + "\" [arrowhead=none]; \n");
               }
           }
+          */
+
           sb.append("}\n");
           Out out = new Out(filename);
           out.print(sb);
@@ -182,7 +267,9 @@ public class DSRgraph {
               { state = 0;}
               else {
                 String[] sa = s.split("\\s+");
-                add(new Species(sa[2]));
+                int sKey = 1;
+                if (sa[0].equals("")) sKey = 2;
+                add(new Species(sa[sKey]));
               }
            }
            else if (state == 2) {
@@ -191,9 +278,10 @@ public class DSRgraph {
               { state = 0;}
              else {
                 String[] sa = s.split("\\s+");
-                if (sa.length > 2 && sa[2].contains("=")) {
-                   //StdOut.println(sa[2]);
-                   Reaction newr = str2Reaction(sa[2]);
+                int rKey = 1;
+                if (sa[0].equals("")) rKey = 2;
+                if (sa.length > 2 && sa[rKey].contains("=")) {
+                   Reaction newr = str2Reaction(sa[rKey]);
                    if (newr != null) add(newr);
                 }
              }
@@ -222,20 +310,26 @@ public class DSRgraph {
 
    /* create a new Reaction from a line of String */
    private Reaction str2Reaction(String s) {
-       assert s.contains("=");
+       
        Reaction reac = new Reaction(s);
        //StdOut.println(s);
        s = removeBracket(s);
        //StdOut.println(s);
-       String[] sa = s.split("=");
+       String[] sa = null;
+       if (s.contains("<") && s.contains(">")) { sa = s.split("<=>"); }
+       else if (!s.contains("<") && s.contains(">")) { sa = s.split("=>"); }
+       else {  sa = s.split("="); }
        /* process LHS */
        ST<String, Double> left = getStr2Nu(sa[0]);
        ST<String, Double> right = getStr2Nu(sa[1]);
        ST<String, Double> total = mergeStr2Nu(left, right);
        for (String sname : total.keys()) {
           Species sp = sDict.get(sname);
-          if (sp == null) throw new
-              IllegalArgumentException("couldn't find species in dictionary");
+          if (sp == null) {
+              StdOut.println(sname);
+              throw new
+                 IllegalArgumentException("couldn't find species in dictionary");
+          }
           //StdOut.print(sp + ": "); StdOut.println(total.get(sname));
           reac.addReactant(sp, total.get(sname));
        }
@@ -249,7 +343,7 @@ public class DSRgraph {
           for (String unit : sa) {
              String name = extractName(unit);
              double nu = extractNu(unit);
-             if (!name.equals("M")) {
+             if (!name.equals("M") && !name.equals("S") && !name.equals("hv")) {
                 if (str2nu.contains(name)) { nu = nu + str2nu.get(name); }
                 str2nu.put(name, nu);
              }
