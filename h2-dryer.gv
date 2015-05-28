@@ -1,0 +1,6 @@
+digraph G {
+size = "50,50"; 
+rankdir = LR; 
+rank = fill 
+layout = fdp 
+}

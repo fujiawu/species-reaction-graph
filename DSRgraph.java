@@ -1,13 +1,12 @@
 /***********************************************************
  *
  *
- *
- *
  *   Compile: javac DSRgraph.java
  *
  *
  *   A class representing a reaction network (mechanism)
  *   using dipartite-species-reaction graph
+ *
  *
  **********************************************************/
 
@@ -75,7 +74,7 @@ public class DSRgraph {
           rDict.put(r.name(), r);
           for (Reaction.Reactant rt : r.reactants()) {
             if (!contains(rt.s)) add(rt.s);
-            species.get(rt.s).put(r, rt.nu); 
+                species.get(rt.s).put(r, rt.nu); 
             E++;
             }
        }
@@ -148,7 +147,7 @@ public class DSRgraph {
       if (type.equals("skeleton")) {
           StringBuilder sb = new StringBuilder();
           sb.append("digraph G {\n");
-          sb.append("size = \"20,20\"; \n");
+          sb.append("size = \"50,50\"; \n");
           sb.append("rankdir = LR; \n");
           sb.append("rank = fill \n");
           sb.append("layout = fdp \n");
@@ -183,7 +182,7 @@ public class DSRgraph {
           }
           //StdOut.println("size:" + i + " vs " + N); 
           Queue<Integer> q = new Queue<Integer>();
-          int distMax = 2;
+          int distMax = 4;
           marked[start] = true; distTo[start] = 0;
           q.enqueue(start);
           //for (int itest = 0; itest < N; itest++) StdOut.println(distTo[itest]);
@@ -202,6 +201,7 @@ public class DSRgraph {
                      }
                      if (!dequeued[ri] && distTo[current] < distMax && distTo[ri] < distMax) {
                        sb.append("\"" + node.s.name() + "\" -> \"" + r.name() + "\" [arrowhead=none]; \n");
+                       sb.append("\"" + node.s.name() + "\" [color=red, penwidth=5]; \n" );
                        sb.append("\"" + r.name() + "\" [shape=box]; \n" );
                      } 
  
@@ -218,6 +218,7 @@ public class DSRgraph {
                       }
                       if (!dequeued[si] && distTo[current]< distMax && distTo[si] < distMax) {
                        sb.append("\"" + node.r.name() + "\" -> \"" + rt.s.name() + "\" [arrowhead=none]; \n");
+                       sb.append("\"" + rt.s.name() + "\" [color=red, penwidth=5]; \n" );
                        sb.append("\"" + node.r.name() + "\" [shape=box]; \n" );
                       }
                 } 
@@ -420,6 +421,11 @@ public class DSRgraph {
        throw new IllegalArgumentException("Specify input/output files"); 
       In in = new In(args[0]); 
       dsr.readChemOut(in);
+      StdOut.println("Number of Species:" + dsr.sSize());
+      StdOut.println("Number of Reactions:" + dsr.rSize());
+      int Nnode = dsr.sSize() + dsr.rSize();
+      StdOut.println("Number of Nodes:" + Nnode);
+      StdOut.println("Number of Edges:" + dsr.E);
       dsr.Graphviz(args[1], "skeleton");
    }
 
